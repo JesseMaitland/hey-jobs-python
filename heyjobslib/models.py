@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import Column, String, Integer, Float, Binary, DateTime
 
 
-db_conn_str = ''
+db_conn_str = 'postgresql+psycopg2://test:testpass@localhost:5432/hey_jobs'
 
 engine = create_engine(db_conn_str)
 
