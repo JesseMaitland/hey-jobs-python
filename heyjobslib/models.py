@@ -17,3 +17,17 @@ def session_factory():
 
 Session = session_factory()
 Base = declarative_base()
+
+
+class JobAdd(Base):
+
+    __tablename__ = 'job_adds'
+
+    id = Column(Integer, primary_key=True)
+    uid = Column(String(500), nullable=False)
+    title = Column(String(500), nullable=False)
+
+    def __init__(self, uid, title):
+        self.uid = uid
+        self.title = title
+
