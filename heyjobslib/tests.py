@@ -1,5 +1,4 @@
 import unittest
-import logging
 from .machine import RequestPage, ParsePage, Error, SaveData
 
 
@@ -34,9 +33,14 @@ class TestParsePage(unittest.TestCase):
 
     def setUp(self):
         self.html = """
+        <div> </div>
         <a href=/en/jobs/1e61e323-1e90-4b0c-a4cf-949ca74bbd7a>
             <div class='job-card-title'>A really great job!</div>
         </a>
+        <a href=/en/jobs/1e61e323-1e90-4b0c-a4cf-949ca74bbd7b>
+            <div class='job-card-title'>A really bad job!</div>
+        </a>
+        </div>
         """
         self.garbage = "akjhdsflkajhdfkja*$(hdlkfjhadslkfj!(#*$)_@hadlkfjhaf,mand.nlchaipher8ydpcia61nerlkthqrhEF"
 
@@ -47,6 +51,7 @@ class TestParsePage(unittest.TestCase):
         self.assertEqual(p.db_job_adds[0].uid, '1e61e323-1e90-4b0c-a4cf-949ca74bbd7a')
         self.assertTrue(p.success)
         self.assertTrue(isinstance(p.next(), SaveData))
+        self.assertEqual(len(p.db_job_adds), 2)
 
     def test_failure(self):
         p = ParsePage(self.garbage)
