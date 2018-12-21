@@ -1,24 +1,74 @@
+"""
+File is used to declare state machine classes. Each class is treated as a seperate state that the program
+can be in. the states are defined as
+
+
+State Definitions:
+-> InitMachine ->  fist state called to set up anything the rest of the machine will depend on
+-> Error       ->  a state which is entered if any previous state encountered a critical problem
+-> ExitProgram ->  this state is used to exit the state machine... hopfully with grace.
+-> RequestPage ->  makes an http get request and stores the retrieved html
+-> ParsePage   ->  parses out the retrieved html from RequestPage state
+-> SaveDate    ->  saves parsed data from ParsPage to the db
+
+
+State Transitions:
+
+-> InitMachine -> RequestPage
+               |
+               -> ExitProgram
+
+-> RequestPage -> ParsePage
+               |
+               -> Error
+
+-> ParsePage -> SaveData
+             |
+             -> Error
+             |
+             -> ExitProgram
+
+-> SaveData -> ExitProgram
+            |
+            -> Error
+
+-> Error -> ExitProgram
+
+
+"""
+
 from requests import get
 from bs4 import BeautifulSoup
 from .project_logging import logger_factory
-from .models import session_factory, JobAdd
+from .models import session_factory, JobAdd, init_db
 
 
+# set up names for our 2 loggers. one for exceptions, one for regular stuff
+# 2 loggers are used to avoid printing exceptions to the console but rather to a file
+# as they can be a bit noisy to look at when they are not important.
 logger_name = __name__ + '_logger'
 ex_logger_name = __name__ + '_ex_logger'
 
-# get a logger to log things about the sate machine
+# get a logger to log info and higher to a file and also to the console
 logger = logger_factory(file_name='logs/scrape-machine.log',
                         logger_name=logger_name)
 
+# get a logger to log info about exceptions. these do not get logged to the console
 ex_logger = logger_factory(file_name='logs/exceptions.log',
                            logger_name=ex_logger_name,
                            print_stream=False)
 
 class StateError(Exception):
+    """
+    simple class allows throwing a StateError exception in the state machine
+    """
     pass
 
+
 class State:
+    """
+    acts as the base class for our state machine. all states must inherit this class
+    """
 
     def __init__(self):
         """
@@ -54,15 +104,22 @@ class State:
 
 
 class Error(State):
-
+    """
+    the state called when something bad or unexpected happens can be expanded to determine
+    if the state machine can could recover from ending up in this state rather than just exiting
+    """
     def run(self):
         pass
 
     def next(self):
-        pass
+        return ExitProgram()
 
 
 class ExitProgram(State):
+    """
+    class used to end execution of the state machine. teardown code can also be added here
+    to destroy objects or so save program state before exit.
+    """
 
     def run(self):
         pass
@@ -72,12 +129,52 @@ class ExitProgram(State):
         exit(0)
 
 
+class InitMachine(State):
+    """
+    class used as the first state we will transition to. in this case
+    we will init the db which will create the tables we need to hold our data
+    """
+
+    def __init__(self):
+        super(InitMachine, self).__init__()
+        self.success = False
+
+    def run(self):
+        """
+        init state -- attempts to build the tables we need in the pg db as defined in the models.py file
+        :return: None
+        """
+        try:
+            logger.info('Creating db tables for database heyjobs')
+            init_db()
+            self.success = True
+        except Exception:
+            logger.info('There was a problme creating tables for db heyjobs. check logs/exceptions')
+            ex_logger.exception('There was a problem creating tables for db heyjobs')
+
+    def next(self):
+        """
+        if an exception was thrown during db table creation, we can't do anything so just quit.
+        :return: ExitProgram
+        """
+        if self.success:
+            logger.info('Creating tables for db heyjobs was successful.')
+            return RequestPage('https://jobs.heyjobs.co/en-de/jobs-in-Berlin?page=1')
+        else:
+            return ExitProgram()
+
+
 class RequestPage(State):
 
-    allowed = []
-    default = ['ParsePage']
+    """
+    state makes an http get request to the desired url
+    """
 
     def __init__(self, url):
+        """
+
+        :param url:
+        """
         super(RequestPage, self).__init__()
         self.url = url
         self.success = False
@@ -154,7 +251,7 @@ class ParsePage(State):
         """
         if self.success and self.can_save:
             logger.info('job adds parsed successfully')
-            return SaveData()
+            return SaveData(self.db_job_adds)
 
         elif self.success and not self.can_save:
             logger.info('there were no job adds recovered form the parsed html')
@@ -210,4 +307,36 @@ class ParsePage(State):
 
 
 class SaveData(State):
-    pass
+
+    def __init__(self, job_adds):
+        super(SaveData, self).__init__()
+        self.job_adds = job_adds
+        self.success = False
+
+
+    def run(self):
+
+        db_session = session_factory()
+        for job_add in self.job_adds:
+            db_session.add(job_add)
+            try:
+                db_session.commit()
+            except Exception:
+                db_session.rollback()
+
+
+    def next(self):
+        return ExitProgram()
+
+
+
+class ScrapeMachine():
+
+    def __init__(self):
+        self.init_state = InitMachine()
+        self.current_state = self.init_state
+
+    def run_machine(self):
+        while True:
+            self.current_state.run()
+            self.current_state = self.current_state.next()
