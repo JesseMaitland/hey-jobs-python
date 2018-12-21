@@ -1,5 +1,5 @@
 """
-File is used to declare state machine classes. Each class is treated as a seperate state that the program
+File is used to declare state machine classes. Each class is treated as a separate state that the program
 can be in. the states are defined as
 
 
@@ -105,12 +105,13 @@ class State:
 class Error(State):
     """
     the state called when something bad or unexpected happens can be expanded to determine
-    if the state machine can could recover from ending up in this state rather than just exiting
+    if the state machine could recover from ending up in this state rather than just exiting
     """
     def run(self):
         pass
 
     def next(self):
+        logger.error('an unknown error has caused the program to exit. check /logs for more info.')
         return ExitProgram()
 
 
@@ -171,7 +172,7 @@ class RequestPage(State):
 
     def __init__(self, url):
         """
-        :param url: the url we want get html from
+        :param url: the url we want to get html from
         """
         super(RequestPage, self).__init__()
         self.url = url
@@ -213,10 +214,13 @@ class RequestPage(State):
 
 class ParsePage(State):
     """
-    class parses out the passed in html looking for job adds
+    class parses out the passed in html looking for job adds using Beautiful Soup
     """
 
     def __init__(self, data):
+        """
+        :param data: well formed html data
+        """
         super(ParsePage, self).__init__()
         self.data = data
         self.success = False
