@@ -58,3 +58,5 @@ class TestParsePage(unittest.TestCase):
         p.run()
         self.assertFalse(p.success)
         self.assertTrue(isinstance(p.next(), Error))
+
+

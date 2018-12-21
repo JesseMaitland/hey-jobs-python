@@ -36,14 +36,13 @@ State Transitions:
 
 
 """
-
+import sys
 from requests import get
 from bs4 import BeautifulSoup
 from .project_logging import logger_factory
 from .models import session_factory, JobAdd, init_db
 
 
-# set up names for our 2 loggers. one for exceptions, one for regular stuff
 # 2 loggers are used to avoid printing exceptions to the console but rather to a file
 # as they can be a bit noisy to look at when they are not important.
 logger_name = __name__ + '_logger'
@@ -172,8 +171,7 @@ class RequestPage(State):
 
     def __init__(self, url):
         """
-
-        :param url:
+        :param url: the url we want get html from
         """
         super(RequestPage, self).__init__()
         self.url = url
@@ -181,6 +179,10 @@ class RequestPage(State):
         self.html = None
 
     def run(self):
+        """
+        makes a simple get request to the desired url and fetches the html from it
+        :return:
+        """
         try:
             logger.info('requesting data from {}'.format(self.url))
             response = get(self.url)
@@ -192,10 +194,16 @@ class RequestPage(State):
 
             self.success = True
         except Exception:
-            logger.warning('There was an exception in the RequestPage state. Check exception log/exception.log for stack trace.')
+            logger.warning('There was an exception in the RequestPage state. Check exception log/exception.log.')
             ex_logger.exception('There was an exception in the RequestPage state. the error was: ')
 
     def next(self):
+        """
+        this state can transition to
+        ParsePage   -> we can transition here if the request worked out as planned passing the html to the parser
+        Error       -> we go here if things don't work out. :(
+        :return:
+        """
         if self.success:
             logger.info('retrieved data successfully from {}'.format(self.url))
             return ParsePage(self.html)
@@ -204,6 +212,9 @@ class RequestPage(State):
 
 
 class ParsePage(State):
+    """
+    class parses out the passed in html looking for job adds
+    """
 
     def __init__(self, data):
         super(ParsePage, self).__init__()
@@ -239,7 +250,6 @@ class ParsePage(State):
         except Exception:
             logger.warning('There was an exception in the ParsePage state. check logs/exception.log for stack trace.')
             ex_logger.exception('There ws an error in the parse page state ')
-
 
     def next(self):
         """
@@ -307,36 +317,57 @@ class ParsePage(State):
 
 
 class SaveData(State):
-
+    """
+    class used to saved parsed data to the db
+    """
     def __init__(self, job_adds):
         super(SaveData, self).__init__()
         self.job_adds = job_adds
         self.success = False
 
-
     def run(self):
-
+        """
+        method gets a connection to the db and tries to save the job adds one at a time
+        :return:
+        """
+        logger.info('Saving job adds to db...')
         db_session = session_factory()
+        logger.info('created db session...')
+
         for job_add in self.job_adds:
             db_session.add(job_add)
             try:
                 db_session.commit()
+                logger.info('saved job to the database with ID: {}'.format(job_add.uid))
             except Exception:
+                logger.info('there was a problem saving job ID {} to the db. check logs/exceptions'.format(job_add.uid))
                 db_session.rollback()
 
-
     def next(self):
+        """
+        this state can transition to
+        ExitProgram  -> because this is the last step
+        :return:
+        """
         return ExitProgram()
 
 
-
 class ScrapeMachine():
-
+    """
+    class is used to advance / control the state machine
+    """
     def __init__(self):
         self.init_state = InitMachine()
         self.current_state = self.init_state
 
     def run_machine(self):
+        """
+        continuously run the state machine based on the transition rules declared
+        :return: None
+        """
         while True:
             self.current_state.run()
             self.current_state = self.current_state.next()
+
+    def go_to(self, state):
+        return getattr(sys.modules[__name__], state)
