@@ -4,7 +4,7 @@ Project created to submit for the application of Python Developer at Hey Jobs Be
 
 ### Goal
 
-Create a simple web scraper to scrape job adds from Berlin from the first page of HeyJobs.com and save them to a database.
+Create a simple web scraper to scrape job adds from Berlin from the first page of Hey Jobs and save them to a database.
 
 Docker containers for postgres and python provided by Hey Jobs.
 
