@@ -25,7 +25,7 @@ def session_factory():
                                        bind=engine))
 
 """
-    necessary objects to define models using declariative base
+    necessary objects to define models using declarative base
 """
 Session = session_factory()
 Base = declarative_base()

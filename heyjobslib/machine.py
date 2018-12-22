@@ -1,4 +1,16 @@
 """
+
+This state machine runs as a web scraper which makes a request to
+
+https://jobs.heyjobs.co/en-de/jobs-in-Berlin?page=1
+
+The scraper then seeks to parse out the job add ids and titles. job adds are in the basic form of
+
+<a href=/en/jobs/id(36)
+    <div class=job-card-title> Title is here </div>
+</a>
+
+
 File is used to declare state machine classes. Each class is treated as a separate state that the program
 can be in. the states are defined as
 
@@ -11,6 +23,7 @@ State Definitions:
 -> ParsePage   ->  parses out the retrieved html from RequestPage state
 -> SaveDate    ->  saves parsed data from ParsPage to the db
 
+Each state has a self.success flag, when set true, will allow the program to transition to the next state.
 
 State Transitions:
 
@@ -36,7 +49,6 @@ State Transitions:
 
 
 """
-import sys
 from requests import get
 from bs4 import BeautifulSoup
 from .project_logging import logger_factory
@@ -149,7 +161,7 @@ class InitMachine(State):
             init_db()
             self.success = True
         except Exception:
-            logger.info('There was a problme creating tables for db heyjobs. check logs/exceptions')
+            logger.info('There was a problem creating tables for db heyjobs. check logs/exceptions')
             ex_logger.exception('There was a problem creating tables for db heyjobs')
 
     def next(self):
@@ -215,11 +227,12 @@ class RequestPage(State):
 class ParsePage(State):
     """
     class parses out the passed in html looking for job adds using Beautiful Soup
+
     """
 
     def __init__(self, data):
         """
-        :param data: well formed html data
+        :param data: well formed html data from hey jobs page
         """
         super(ParsePage, self).__init__()
         self.data = data
@@ -230,6 +243,10 @@ class ParsePage(State):
         self.can_save = False
 
     def run(self):
+        """
+        runs job add parsing. each job add is wrapped in an HTML <a> tag.
+        :return:
+        """
         try:
             logger.info('scraping / parsing html from successful request.')
 
@@ -240,11 +257,12 @@ class ParsePage(State):
             if not self.soup.find():
                 raise StateError('invalid html received in ParsePage state.')
 
+            # job adds are wrapped in an <a> html tag
             self.job_adds = self.soup.find_all('a')
             self.strip_element()
             self.make_job_adds()
 
-            # only mark success if we actually have job adds to post to the db.
+            # only mark ability to save if we actually have job adds to post to the db.
             if len(self.db_job_adds) > 0:
                 self.can_save = True
 
@@ -322,7 +340,7 @@ class ParsePage(State):
 
 class SaveData(State):
     """
-    class used to saved parsed data to the db
+    class used to save parsed data to the db
     """
     def __init__(self, job_adds):
         super(SaveData, self).__init__()
@@ -366,12 +384,10 @@ class ScrapeMachine():
 
     def run_machine(self):
         """
-        continuously run the state machine based on the transition rules declared
+        continuously run the state machine based on the transition rules declared in the state objects above
         :return: None
         """
         while True:
             self.current_state.run()
             self.current_state = self.current_state.next()
 
-    def go_to(self, state):
-        return getattr(sys.modules[__name__], state)
