@@ -73,3 +73,6 @@ state objects and transition rules.
 unit tests can be written to test the function of each individual state, and the expected
 output when passed good or bad data as it's input parameters. This scenario allows for testing
 that the state machine advances to the correct / desired states for a known input
+
+tests can be run from the project root directory using
+`python -m unittest -v heyjobslib/tests.py`
