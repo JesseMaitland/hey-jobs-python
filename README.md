@@ -21,8 +21,6 @@ to select from the database "heyjobs"
 the scraper container can be accessed via bash by running
 `docker-compose run --entrypoint /bin/bash scraper`
 
-### Tests
-tests can be run from the terminal
 
 ### Assumptions
 
