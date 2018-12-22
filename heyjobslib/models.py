@@ -5,13 +5,13 @@ File declares all SQL alchemy / db related objects and models
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy import Column, String, Integer, Float, Binary, DateTime
+from sqlalchemy import Column, String, Integer
 
 
 """
     SQL alchemy configuration and engine creation
 """
-db_conn_str = 'postgresql+psycopg2://test:testpass@localhost:5432/heyjobs'
+db_conn_str = 'postgresql+psycopg2://test:testpass@db:5432/heyjobs'
 engine = create_engine(db_conn_str)
 
 

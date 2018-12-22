@@ -18,6 +18,9 @@ to select from the database "heyjobs"
 
 `docker-compose up scraper`
 
+the scraper container can be accessed via bash by running
+`docker-compose run --entrypoint /bin/bash scraper`
+
 ### Tests
 tests can be run from the terminal
 
@@ -76,3 +79,15 @@ that the state machine advances to the correct / desired states for a known inpu
 
 tests can be run from the project root directory using
 `python -m unittest -v heyjobslib/tests.py`
+
+### DB credentials
+
+default credentials provided were used
+
+`
+dbname: 'heyjobs'
+host: 'db'
+port: 5432
+user: 'test'
+password: 'testpass'
+`
