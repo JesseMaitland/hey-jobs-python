@@ -66,9 +66,9 @@ the scraper container can be accessed via bash by running
 
 ### Programming Method - Why use a state machine?
 
-while this scraper could have easily been implemented in a single script with fewer lines of code, fewer files and no directory structure
-a state machine allows program flow to be easily understood, and later modified by simply adding / removing or modifying 
-state objects and transition rules. 
+This scraper could have been implemented in a single script with fewer lines of code, fewer files and no directory structure
+a state machine allows program flow to be understood, and later modified by adding / removing or modifying 
+state objects and transition rules. A contex object can also later be implemented to alter logical state transitions. 
 
 #### Testing
 unit tests can be written to test the function of each individual state, and the expected
